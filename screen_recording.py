@@ -6,11 +6,10 @@ def draw_lidar(frame, car_position, num_rays=20):
     """Simulates LIDAR and returns distances."""
     height, width = frame.shape[:2]
     cx, cy = car_position
-    distances = []  # Store distances for each ray
+    distances = []  # Store distance for each ray
 
     for angle in np.linspace(np.pi, 2 * np.pi, num_rays):
         dx, dy = np.cos(angle), np.sin(angle)
-        distance = 0
         for i in range(1, 1000, 3):
             x, y = int(cx + dx * i), int(cy + dy * i)
             if x >= width or y >= height or x < 0 or y < 0:
@@ -19,12 +18,15 @@ def draw_lidar(frame, car_position, num_rays=20):
             if i < 175:
                 continue
 
-            if frame[y, x][0] < 96 or frame[y, x][1] < 96 or frame[y, x][1] > 255 or frame[y, x][2] < 96:
-                distance = i  # Store the distance where the ray hit
-                break
-            cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)
-
-        distances.append(distance)  # Append the distance for this ray
+            if frame[y,x][0] < 96 or frame[y,x][1] < 96 or frame[y,x][2] < 96:
+                    # rgb(94, 156, 123)
+                    # rgb(75, 134, 96)
+                    if frame[y,x][0] < 90 or frame[y,x][0] > 130 or\
+                        frame[y,x][1] < 130 or frame[y,x][1] > 160 or\
+                        frame[y,x][2] < 70 or frame[y,x][2] > 100:
+                        break
+            cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)  # Draw LIDAR point in RED
+        distances.append(i)
     return frame, distances
 
 def capture_screen():
