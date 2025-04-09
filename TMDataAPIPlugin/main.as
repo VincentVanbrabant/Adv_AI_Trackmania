@@ -1,30 +1,28 @@
 void Main()
 {
-    int8 prevCP = 0;
-    int8 currentCP = 0;
-    float CPTime = 0.0;
+    uint8 prevCP = 0;
+    uint8 currentCP = 0;
+    uint CPTime = 0;
 
-	auto sock_serv = Net::Socket();
+	auto server_socket = Net::Socket();
 
-	if (!sock_serv.Listen("127.0.0.1", 9000)) {
-		print(Time::Now + "Failed to initiate socket");
+	if (!server_socket.Listen("127.0.0.1", 9000)) {
+		print("Failed to initiate socket");
 		return;
 	}
 
-	while (!sock_serv.IsReady()) {
-		yield();
-	}
+	while (!server_socket.IsReady()) yield();
+
 	print("Socket is ready");
 
 	while (true) {
-		auto sock = sock_serv.Accept();
-		if (sock is null) yield();
+		auto socket = server_socket.Accept();
+		if (socket is null) yield();
 		else {
 			print("Connected");
 			
-			bool cc = true;
-			while (cc)
-			{
+			bool connected = true;
+			while (connected) {
 				auto buf = MemoryBuffer(0);
 				auto raceData = PlayerState::GetRaceData();
 				auto info = raceData.dPlayerInfo;
@@ -35,10 +33,10 @@ void Main()
 					}
 					if (currentCP != 0 && prevCP != currentCP) {
 						buf.Write(currentCP);
-						buf.Write(info.CurrentRaceTime);
+						buf.Write(CPTime);
 						buf.Seek(0, 0);
 				
-						cc = sock.Write(buf);
+						connected = socket.Write(buf);
 					}
 
 					prevCP = currentCP;
@@ -49,14 +47,14 @@ void Main()
 					buf.Write(info.EndTime);
 					buf.Seek(0, 0);
 			
-					cc = sock.Write(buf);
+					connected = socket.Write(buf);
 				}
 
 				yield();
 			}
 			print("Disconnected");
-			sock.Close();
+			socket.Close();
 		}
 	}
-	sock_serv.Close();
+	server_socket.Close();
 }
