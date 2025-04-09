@@ -1,0 +1,7 @@
+[meta]
+name = "TM Data API"
+author = ""
+category = ""
+
+[script]
+dependencies = [ "PlayerState" ]
