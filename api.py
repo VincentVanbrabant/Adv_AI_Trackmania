@@ -7,8 +7,10 @@ print('Connected')
 while True:
     try:
         response = client.recv(1024)
-        cp, time = int.from_bytes(response[:1], byteorder='little', signed=True),\
-            int.from_bytes(response[1:], byteorder='little', signed=False)
+        cp, time = (
+            int.from_bytes(response[:4], byteorder='little', signed=False),
+            int.from_bytes(response[4:], byteorder='little', signed=False)
+        )
         print(f'checkpoint: {cp}')
         print(f'time: {time}')
     except KeyboardInterrupt as e:
