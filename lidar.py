@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
-import mss
+import time
+from threading import Event
+from windows_capture import WindowsCapture, Frame, InternalCaptureControl
 
 def draw_lidar(frame, car_position, num_rays=20):
     """Simulates LIDAR and returns distances."""
@@ -26,24 +28,80 @@ def draw_lidar(frame, car_position, num_rays=20):
         distances.append(i)
     return frame, distances
 
-def capture_screen():
-    """Captures the screen and returns a BGR frame."""
-    with mss.mss() as sct:
-        monitor = sct.monitors[1]
-        screenshot = sct.grab(monitor)
-        frame = np.array(screenshot)
-        return cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
-
-while True:
-    frame = capture_screen()
+def calculate_lidar(frame, car_position, num_rays=20):
+    """Calculate lidar without displaying anything for a significant performance improvement"""
     height, width = frame.shape[:2]
-    lidar_overlay, lidar_distances = draw_lidar(frame, (width // 2, (height // 2) + 200))
+    cx, cy = car_position
+    distances = []  # Store distance for each ray
 
-    # Print the distances array
-    print("LIDAR Distances:", lidar_distances)
+    for angle in np.linspace(np.pi, 2 * np.pi, num_rays):
+        dx, dy = np.cos(angle), np.sin(angle)
+        for i in range(1, 1000, 1):
+            x, y = int(cx + dx * i), int(cy + dy * i)
+            if x >= width or y >= height or x < 0 or y < 0:
+                break
 
-    cv2.imshow("Trackmania LIDAR", lidar_overlay)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+            if i < 175:
+                continue
 
-cv2.destroyAllWindows()
+            if frame[y,x][0] < 85 or frame[y,x][1] < 85 or frame[y,x][2] < 70:
+                break
+
+        distances.append(i)
+    return distances
+
+frame_ready = Event()
+last_frame: Frame
+
+capture = WindowsCapture(
+    cursor_capture=None,
+    draw_border=None,
+    monitor_index=None,
+    window_name='Trackmania',
+)
+
+@capture.event
+def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
+    global last_frame
+    last_frame = frame
+    frame_ready.set()
+
+@capture.event
+def on_closed():
+    pass
+
+def main():
+    capture.start_free_threaded()
+
+    frames = 0
+    start = time.time()
+    while True:
+        frames += 1
+
+        frame_ready.wait()
+        frame_ready.clear()
+
+        frame = cv2.cvtColor(last_frame.frame_buffer, cv2.COLOR_BGRA2BGR)
+        height, width = last_frame.height, last_frame.width
+
+        # lidar_overlay, lidar_distances = draw_lidar(frame, (width // 2, (height // 2) + 200))
+
+        # Print the distances array
+        # print("LIDAR Distances:", lidar_distances)
+
+        # cv2.imshow("Trackmania LIDAR", lidar_overlay)
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     break
+
+        lidar_distances = calculate_lidar(frame, (width // 2, (height // 2) + 200))
+        # print("LIDAR Distances:", lidar_distances)
+
+        if frames % 50 == 0:
+            print(f'FPS: {frames / (time.time() - start)}')
+            start = time.time()
+            frames = 0
+
+    # cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
