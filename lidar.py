@@ -36,7 +36,7 @@ def calculate_lidar(frame, car_position, num_rays=20):
 
     for angle in np.linspace(np.pi, 2 * np.pi, num_rays):
         dx, dy = np.cos(angle), np.sin(angle)
-        for i in range(1, 1000, 1):
+        for i in range(1, 500, 1):
             x, y = int(cx + dx * i), int(cy + dy * i)
             if x >= width or y >= height or x < 0 or y < 0:
                 break
@@ -50,27 +50,30 @@ def calculate_lidar(frame, car_position, num_rays=20):
         distances.append(i)
     return distances
 
-frame_ready = Event()
-last_frame: Frame
 
-capture = WindowsCapture(
-    cursor_capture=None,
-    draw_border=None,
-    monitor_index=None,
-    window_name='Trackmania',
-)
-
-@capture.event
-def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
-    global last_frame
-    last_frame = frame
-    frame_ready.set()
-
-@capture.event
-def on_closed():
-    pass
 
 def main():
+    frame_ready = Event()
+    last_frame: dict[str, Frame] = {}
+    
+    capture = WindowsCapture(
+        cursor_capture=None,
+        draw_border=None,
+        monitor_index=None,
+        window_name='Trackmania',
+    )
+
+    @capture.event
+    def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
+        # global last_frame
+        last_frame['value'] = frame
+        # last_frame = frame
+        frame_ready.set()
+
+    @capture.event
+    def on_closed():
+        pass
+
     capture.start_free_threaded()
 
     frames = 0
@@ -81,8 +84,10 @@ def main():
         frame_ready.wait()
         frame_ready.clear()
 
-        frame = cv2.cvtColor(last_frame.frame_buffer, cv2.COLOR_BGRA2BGR)
-        height, width = last_frame.height, last_frame.width
+        frame = last_frame['value']
+
+        frame_data = cv2.cvtColor(frame.frame_buffer, cv2.COLOR_BGRA2BGR)
+        height, width = frame.height, frame.width
 
         # lidar_overlay, lidar_distances = draw_lidar(frame, (width // 2, (height // 2) + 200))
 
@@ -93,7 +98,7 @@ def main():
         # if cv2.waitKey(1) & 0xFF == ord('q'):
         #     break
 
-        lidar_distances = calculate_lidar(frame, (width // 2, (height // 2) + 200))
+        lidar_distances = calculate_lidar(frame_data, (width // 2, (height // 2) + 200))
         # print("LIDAR Distances:", lidar_distances)
 
         if frames % 50 == 0:

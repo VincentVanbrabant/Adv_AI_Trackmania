@@ -33,6 +33,7 @@ void Main() {
             while (connected && !socket.IsHungUp()) {
                 auto raceData = PlayerState::GetRaceData();
                 auto playerInfo = raceData.dPlayerInfo;
+                bool driving = true;
                 if (raceData.PlayerState == PlayerState::EPlayerState::EPlayerState_Driving) {
                     currentCP = playerInfo.NumberOfCheckpointsPassed;
 
@@ -42,12 +43,17 @@ void Main() {
                     if (currentCP != 0 && previousCP != currentCP) {
 						previousCP = currentCP;
 
-                        connected = Send(socket, currentCP, CPTime);
+                        // connected = Send(socket, currentCP, CPTime);
                     }
                 } else if (playerInfo.EndTime != 0) {
-                    currentCP = 0;
+                    currentCP = 4294967295;
 
-                    connected = Send(socket, currentCP, playerInfo.EndTime);
+                    // connected = Send(socket, currentCP, playerInfo.EndTime);
+                } else {
+                    driving = false;
+                }
+                if (driving) {
+                    connected = Send(socket, currentCP, playerInfo.CurrentRaceTime);
                 }
                 yield();
             }
