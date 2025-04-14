@@ -50,8 +50,6 @@ def calculate_lidar(frame, car_position, num_rays=20):
         distances.append(i)
     return distances
 
-
-
 def main():
     frame_ready = Event()
     last_frame: dict[str, Frame] = {}

@@ -7,6 +7,7 @@ import numpy as np
 import socket
 import cv2
 import time
+import math
 
 def calculate_reward(cp, time):
     # TODO
@@ -14,7 +15,7 @@ def calculate_reward(cp, time):
     if time == 0.0: return 0
     return cp / time
 
-def calculate_lidar(frame, car_position, num_rays):
+def calculate_lidar(frame, car_position, num_rays, max_ray_length):
     """Calculate lidar without displaying anything for a significant performance improvement"""
     height, width = frame.shape[:2]
     cx, cy = car_position
@@ -22,7 +23,7 @@ def calculate_lidar(frame, car_position, num_rays):
 
     for angle in np.linspace(np.pi, 2 * np.pi, num_rays):
         dx, dy = np.cos(angle), np.sin(angle)
-        for i in range(1, 500, 1):
+        for i in range(1, max_ray_length, 1):
             x, y = int(cx + dx * i), int(cy + dy * i)
             if x >= width or y >= height or x < 0 or y < 0:
                 break
@@ -33,7 +34,7 @@ def calculate_lidar(frame, car_position, num_rays):
             if frame[y,x][0] < 85 or frame[y,x][1] < 85 or frame[y,x][2] < 70:
                 break
 
-        distances.append(i)
+        distances.append(i / max_ray_length)
     return distances
 
 class TrackmaniaInterface(RealTimeGymInterface):
@@ -85,7 +86,10 @@ class TrackmaniaInterface(RealTimeGymInterface):
         frame_data = cv2.cvtColor(frame.frame_buffer, cv2.COLOR_BGRA2BGR)
         height, width = frame.height, frame.width
 
-        return calculate_lidar(frame_data, (width // 2, (height // 2) + 200), self.num_rays)
+        # max length of a ray assuming it starts at the bottom center and ends up in either top corner
+        max_ray_length = math.ceil(math.sqrt((width / 2)**2 + height**2))
+
+        return calculate_lidar(frame_data, (width // 2, (height // 2) + 200), self.num_rays, max_ray_length)
 
     def reset(self, seed=None, options=None):
         self.gamepad.reset()
@@ -118,7 +122,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
         return [self._get_obs()], calculate_reward(cp, time), cp == 4294967295, {}
 
     def get_observation_space(self):
-        lidar = spaces.Box(low=np.array([0.0] * self.num_rays, dtype='float32'), high=np.array([500.0] * self.num_rays, dtype='float32'), shape=(self.num_rays,))
+        lidar = spaces.Box(low=np.array([0.0] * self.num_rays, dtype='float32'), high=np.array([1.0] * self.num_rays, dtype='float32'), shape=(self.num_rays,))
         return spaces.Tuple((lidar,))
 
     def get_action_space(self):
