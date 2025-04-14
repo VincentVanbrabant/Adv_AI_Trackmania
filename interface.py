@@ -15,11 +15,16 @@ def calculate_reward(cp, time):
     if time == 0.0: return 0
     return cp / time
 
-def calculate_lidar(frame, car_position, num_rays, max_ray_length):
+def calculate_car_position(width, height, scaling_factor):
+    return math.floor(width // 2), math.floor((height // 2) + 200 * scaling_factor)
+
+def calculate_lidar(frame, width, height, num_rays):
     """Calculate lidar without displaying anything for a significant performance improvement"""
-    height, width = frame.shape[:2]
-    cx, cy = car_position
+    scaling_factor = (height / 1080)
+    cx, cy = calculate_car_position(width, height, scaling_factor)
     distances = []  # Store distance for each ray
+    # max length of a ray assuming it starts at the bottom center and ends up in either top corner
+    max_ray_length = math.ceil(math.sqrt((width / 2)**2 + height**2))
 
     for angle in np.linspace(np.pi, 2 * np.pi, num_rays):
         dx, dy = np.cos(angle), np.sin(angle)
@@ -28,7 +33,7 @@ def calculate_lidar(frame, car_position, num_rays, max_ray_length):
             if x >= width or y >= height or x < 0 or y < 0:
                 break
 
-            if i < 175:
+            if i < 175 * scaling_factor:
                 continue
 
             if frame[y,x][0] < 85 or frame[y,x][1] < 85 or frame[y,x][2] < 70:
@@ -86,10 +91,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
         frame_data = cv2.cvtColor(frame.frame_buffer, cv2.COLOR_BGRA2BGR)
         height, width = frame.height, frame.width
 
-        # max length of a ray assuming it starts at the bottom center and ends up in either top corner
-        max_ray_length = math.ceil(math.sqrt((width / 2)**2 + height**2))
-
-        return calculate_lidar(frame_data, (width // 2, (height // 2) + 200), self.num_rays, max_ray_length)
+        return calculate_lidar(frame_data, width, height, self.num_rays)
 
     def reset(self, seed=None, options=None):
         self.gamepad.reset()
