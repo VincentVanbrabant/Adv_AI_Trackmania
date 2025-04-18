@@ -19,10 +19,9 @@ def calculate_car_position(width, height, scaling_factor):
     return math.floor(width // 2), math.floor((height // 2) + 200 * scaling_factor)
 
 def calculate_lidar(frame, width, height, num_rays):
-    """Calculate lidar without displaying anything for a significant performance improvement"""
     scaling_factor = (height / 1080)
     cx, cy = calculate_car_position(width, height, scaling_factor)
-    distances = []  # Store distance for each ray
+    distances = []
     # max length of a ray assuming it starts at the bottom center and ends up in either top corner
     max_ray_length = math.ceil(math.sqrt((width / 2)**2 + height**2))
 
@@ -56,8 +55,8 @@ class TrackmaniaInterface(RealTimeGymInterface):
         self.last_frame: Frame
         
         capture = WindowsCapture(
-            cursor_capture=None,
-            draw_border=None,
+            cursor_capture=False,
+            draw_border=True,
             monitor_index=None,
             window_name='Trackmania',
         )
@@ -65,6 +64,10 @@ class TrackmaniaInterface(RealTimeGymInterface):
         @capture.event
         def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
             self.last_frame = frame
+            # if self.frame_ready.is_set():
+            #     print('unused frame')
+            # else:
+            #     print('used frame')
             self.frame_ready.set()
 
         @capture.event
@@ -91,7 +94,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
         frame_data = cv2.cvtColor(frame.frame_buffer, cv2.COLOR_BGRA2BGR)
         height, width = frame.height, frame.width
 
-        return calculate_lidar(frame_data, width, height, self.num_rays)
+        return [calculate_lidar(frame_data, width, height, self.num_rays)]
 
     def reset(self, seed=None, options=None):
         self.gamepad.reset()
@@ -101,16 +104,13 @@ class TrackmaniaInterface(RealTimeGymInterface):
         self.gamepad.release_button(vg.XUSB_BUTTON.XUSB_GAMEPAD_B)
         self.gamepad.update()
 
-        self.client.recv(1024)
-        time.sleep(0.1)
-
         while True:
             response = self.client.recv(1024)
             cp = int.from_bytes(response[-8:-4], byteorder='little', signed=False)
             if cp == 0:
                 break
 
-        return [self._get_obs()], {}
+        return self._get_obs(), {}
 
     # def wait(self):
     #     pass
@@ -121,17 +121,15 @@ class TrackmaniaInterface(RealTimeGymInterface):
             int.from_bytes(response[-8:-4], byteorder='little', signed=False),
             int.from_bytes(response[-4:], byteorder='little', signed=False),
         )
-        return [self._get_obs()], calculate_reward(cp, time), cp == 4294967295, {}
+        return self._get_obs(), calculate_reward(cp, time), cp == 4294967295, {}
 
     def get_observation_space(self):
-        lidar = spaces.Box(low=np.array([0.0] * self.num_rays, dtype='float32'), high=np.array([1.0] * self.num_rays, dtype='float32'), shape=(self.num_rays,))
+        # TODO: pass speed and other useful information
+        lidar = spaces.Box(low=0.0, high=1.0, shape=(self.num_rays,))
         return spaces.Tuple((lidar,))
 
     def get_action_space(self):
-        acceleration = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        braking = spaces.Box(low=0.0, high=1.0, shape=(1,))
-        steering = spaces.Box(low=-0.5, high=0.5, shape=(1,))
-        return spaces.Tuple((acceleration, braking, steering))
+        return spaces.Box(low=0.0, high=1.0, shape=(3,))
 
     def get_default_action(self):
         return np.array([0.0, 0.0, 0.0], dtype='float32')
