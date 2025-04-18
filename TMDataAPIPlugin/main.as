@@ -1,17 +1,33 @@
-bool Send(Net::Socket@ socket, uint CP, uint time) {
+bool Send(Net::Socket@ socket, uint CP, uint time, float speed, int gear, float rpm, float distanceTravelled, vec3 cpPosDelta, vec3 direction) {
 	auto buffer = MemoryBuffer(0);
 
     buffer.Write(CP);
     buffer.Write(time);
+    buffer.Write(speed);
+    buffer.Write(gear);
+    buffer.Write(rpm);
+    buffer.Write(distanceTravelled);
+    buffer.Write(cpPosDelta.x);
+    buffer.Write(cpPosDelta.y);
+    buffer.Write(cpPosDelta.z);
+    buffer.Write(direction.x);
+    buffer.Write(direction.y);
+    buffer.Write(direction.z);
+    buffer.Write(cpPosDelta.Length());
     buffer.Seek(0, 0);
 
     return socket.Write(buffer);
 }
 
+uint NextLandMark(uint current, uint length) {
+    if (current + 1 == length) {
+        return 0;
+    }
+    return current + 1;
+}
+
 void Main() {
-    uint previousCP = 0;
     uint currentCP = 0;
-    uint CPTime = 0;
 
     auto server_socket = Net::Socket();
 
@@ -36,24 +52,22 @@ void Main() {
                 bool driving = true;
                 if (raceData.PlayerState == PlayerState::EPlayerState::EPlayerState_Driving) {
                     currentCP = playerInfo.NumberOfCheckpointsPassed;
-
-                    if (playerInfo.LatestCPTime > 0) {
-                        CPTime = playerInfo.LatestCPTime;
-                    }
-                    if (currentCP != 0 && previousCP != currentCP) {
-						previousCP = currentCP;
-
-                        // connected = Send(socket, currentCP, CPTime);
-                    }
                 } else if (playerInfo.EndTime != 0) {
                     currentCP = 4294967295;
-
-                    // connected = Send(socket, currentCP, playerInfo.EndTime);
                 } else {
                     driving = false;
                 }
                 if (driving) {
-                    connected = Send(socket, currentCP, playerInfo.CurrentRaceTime);
+                    connected = Send(socket,
+                        currentCP,
+                        playerInfo.CurrentRaceTime,
+                        playerInfo.Speed,
+                        playerInfo.EngineCurGear,
+                        playerInfo.EngineRpm,
+                        playerInfo.Distance,
+                        raceData.dMapInfo.MapLandmarks[NextLandMark(playerInfo.LatestCheckpointLandmarkIndex, raceData.dMapInfo.MapLandmarks.Length)].Position - playerInfo.Position,
+                        playerInfo.AimDirection
+                    );
                 }
                 yield();
             }

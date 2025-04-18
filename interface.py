@@ -8,6 +8,9 @@ import socket
 import cv2
 import time
 import math
+import struct
+
+from trackmania_api import TrackmaniaAPIData
 
 def calculate_reward(cp, time):
     # TODO
@@ -85,7 +88,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
             self.gamepad.left_joystick_float(control[2], 0.0)
             self.gamepad.update()
 
-    def _get_obs(self):
+    def _get_lidar(self):
         self.frame_ready.wait()
         self.frame_ready.clear()
 
@@ -94,7 +97,10 @@ class TrackmaniaInterface(RealTimeGymInterface):
         frame_data = cv2.cvtColor(frame.frame_buffer, cv2.COLOR_BGRA2BGR)
         height, width = frame.height, frame.width
 
-        return [calculate_lidar(frame_data, width, height, self.num_rays)]
+        return calculate_lidar(frame_data, width, height, self.num_rays)
+
+    def _get_obs(self, api_data: TrackmaniaAPIData):
+        return [self._get_lidar(), api_data.speed, api_data.gear, api_data.rpm]
 
     def reset(self, seed=None, options=None):
         self.gamepad.reset()
@@ -106,27 +112,26 @@ class TrackmaniaInterface(RealTimeGymInterface):
 
         while True:
             response = self.client.recv(1024)
-            cp = int.from_bytes(response[-8:-4], byteorder='little', signed=False)
-            if cp == 0:
+            api_data = TrackmaniaAPIData(response)
+            if api_data.cp == 0:
                 break
 
-        return self._get_obs(), {}
+        return self._get_obs(api_data), {}
 
     # def wait(self):
     #     pass
 
     def get_obs_rew_terminated_info(self):
         response = self.client.recv(1024)
-        cp, time = (
-            int.from_bytes(response[-8:-4], byteorder='little', signed=False),
-            int.from_bytes(response[-4:], byteorder='little', signed=False),
-        )
-        return self._get_obs(), calculate_reward(cp, time), cp == 4294967295, {}
+        api_data = TrackmaniaAPIData(response)
+        return self._get_obs(api_data), calculate_reward(api_data.cp, api_data.time), api_data.cp == 4294967295, {}
 
     def get_observation_space(self):
-        # TODO: pass speed and other useful information
         lidar = spaces.Box(low=0.0, high=1.0, shape=(self.num_rays,))
-        return spaces.Tuple((lidar,))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(self.num_rays,))
+        gear = spaces.Box(low=1.0, high=5.0, shape=(self.num_rays,))
+        rpm = spaces.Box(low=0.0, high=11000.0, shape=(self.num_rays,))
+        return spaces.Tuple((lidar, speed, gear, rpm))
 
     def get_action_space(self):
         return spaces.Box(low=0.0, high=1.0, shape=(3,))
