@@ -16,5 +16,5 @@ obs, info = env.reset()
 while True:
 	act = model()
 	obs, rew, terminated, truncated, info = env.step(act)
-	if terminated:
+	if terminated or truncated:
 		env.reset()
