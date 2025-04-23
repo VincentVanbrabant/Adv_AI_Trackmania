@@ -8,7 +8,6 @@ import socket
 import cv2
 import time
 import math
-import struct
 
 from trackmania_api import TrackmaniaAPIData
 
@@ -128,9 +127,9 @@ class TrackmaniaInterface(RealTimeGymInterface):
 
     def get_observation_space(self):
         lidar = spaces.Box(low=0.0, high=1.0, shape=(self.num_rays,))
-        speed = spaces.Box(low=0.0, high=1000.0, shape=(self.num_rays,))
-        gear = spaces.Box(low=1.0, high=5.0, shape=(self.num_rays,))
-        rpm = spaces.Box(low=0.0, high=11000.0, shape=(self.num_rays,))
+        speed = spaces.Box(low=0.0, high=1000.0, shape=(1,))
+        gear = spaces.Box(low=1.0, high=5.0, shape=(1,))
+        rpm = spaces.Box(low=0.0, high=11000.0, shape=(1,))
         return spaces.Tuple((lidar, speed, gear, rpm))
 
     def get_action_space(self):

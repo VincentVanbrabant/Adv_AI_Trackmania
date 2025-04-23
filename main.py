@@ -1,4 +1,6 @@
-import gymnasium
+import gymnasium as gym
+from gymnasium.wrappers import FlattenObservation
+from stable_baselines3 import PPO
 from interface import TrackmaniaInterface
 from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 
@@ -6,15 +8,17 @@ from rtgym.envs.real_time_env import DEFAULT_CONFIG_DICT
 trackmania_config = DEFAULT_CONFIG_DICT
 trackmania_config['interface'] = TrackmaniaInterface
 
-env = gymnasium.make('real-time-gym-v1', config=trackmania_config, disable_env_checker=True)
+env = gym.make('real-time-gym-v1', config=trackmania_config, disable_env_checker=True)
+env = FlattenObservation(env)
 
-def model():
-	# TODO
-	return [1.0, 0.0, 0.0]
+model = PPO("MlpPolicy", env, verbose=1)
+model.learn(total_timesteps=25000)
+model.save("ppo_trackmania")
 
-obs, info = env.reset()
+model = PPO.load("ppo_trackmania")
+obs = env.reset()
 while True:
-	act = model()
-	obs, rew, terminated, truncated, info = env.step(act)
-	if terminated or truncated:
-		env.reset()
+    action, _states = model.predict(obs)
+    obs, rewards, terminated, truncated, info = env.step(action)
+    if terminated or truncated:
+        env.reset()
