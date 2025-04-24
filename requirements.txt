@@ -1,0 +1,6 @@
+numpy
+opencv-python
+rtgym
+stable-baselines3
+vgamepad
+windows-capture

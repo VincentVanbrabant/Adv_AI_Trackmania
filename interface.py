@@ -11,11 +11,9 @@ import math
 
 from trackmania_api import TrackmaniaAPIData
 
-def calculate_reward(cp, time):
+def calculate_reward(api_data: TrackmaniaAPIData):
     # TODO
-    if cp == 4294967295: return 100 / time
-    if time == 0.0: return 0
-    return cp / time
+    return api_data.cp * 300 - api_data.distance_to_cp
 
 def calculate_car_position(width, height, scaling_factor):
     return math.floor(width // 2), math.floor((height // 2) + 200 * scaling_factor)
@@ -84,7 +82,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
         if control is not None:
             self.gamepad.right_trigger_float(control[0])
             self.gamepad.left_trigger_float(control[1])
-            self.gamepad.left_joystick_float(control[2], 0.0)
+            self.gamepad.left_joystick_float((control[2] - 0.5) * 2.0, 0.0)
             self.gamepad.update()
 
     def _get_lidar(self):
@@ -115,6 +113,9 @@ class TrackmaniaInterface(RealTimeGymInterface):
             if api_data.cp == 0:
                 break
 
+        self.start = time.time()
+        self.steps = 0
+
         return self._get_obs(api_data), {}
 
     # def wait(self):
@@ -123,7 +124,15 @@ class TrackmaniaInterface(RealTimeGymInterface):
     def get_obs_rew_terminated_info(self):
         response = self.client.recv(1024)
         api_data = TrackmaniaAPIData(response)
-        return self._get_obs(api_data), calculate_reward(api_data.cp, api_data.time), api_data.cp == 4294967295, {}
+
+        self.steps += 1
+        if self.steps % 25 == 0:
+            print(f'Steps per second: {self.steps/(time.time()-self.start):2f}')
+            print(f'Reward: {calculate_reward(api_data)}, {api_data.cp}, {api_data.distance_to_cp}')
+            self.start = time.time()
+            self.steps = 0
+
+        return self._get_obs(api_data), calculate_reward(api_data), api_data.cp == 4294967295, {}
 
     def get_observation_space(self):
         lidar = spaces.Box(low=0.0, high=1.0, shape=(self.num_rays,))
