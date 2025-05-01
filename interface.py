@@ -64,13 +64,8 @@ class TrackmaniaInterface(RealTimeGymInterface):
         @capture.event
         def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
             self.last_frame = frame
-            self.frames += 1
-
-            # if self.frame_ready.is_set():
-            #     print('unused frame')
-            # else:
-            #     print('used frame')
             self.frame_ready.set()
+            self.frames += 1
 
         @capture.event
         def on_closed():
