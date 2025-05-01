@@ -32,10 +32,8 @@ def calculate_lidar(frame, width, height, num_rays):
             if x >= width or y >= height or x < 0 or y < 0:
                 break
 
-            if i < 175 * scaling_factor:
-                continue
-
-            if frame[y,x][0] < 85 or frame[y,x][1] < 85 or frame[y,x][2] < 70:
+            pixel = frame[y,x]
+            if pixel[0] < 85 or pixel[1] < 85 or pixel[2] < 70:
                 break
 
         distances.append(i / max_ray_length)
@@ -61,9 +59,13 @@ class TrackmaniaInterface(RealTimeGymInterface):
             window_name='Trackmania',
         )
 
+        self.frames = 0
+
         @capture.event
         def on_frame_arrived(frame: Frame, capture_control: InternalCaptureControl):
             self.last_frame = frame
+            self.frames += 1
+
             # if self.frame_ready.is_set():
             #     print('unused frame')
             # else:
@@ -79,10 +81,12 @@ class TrackmaniaInterface(RealTimeGymInterface):
         self.capture = capture
 
     def send_control(self, control):
+        if (self.steps + 1) % 25 == 0:
+            print(f'Control: {control}')
         if control is not None:
             self.gamepad.right_trigger_float(control[0])
             self.gamepad.left_trigger_float(control[1])
-            self.gamepad.left_joystick_float((control[2] - 0.5) * 2.0, 0.0)
+            self.gamepad.left_joystick_float(control[2], 0.0)
             self.gamepad.update()
 
     def _get_lidar(self):
@@ -115,6 +119,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
 
         self.start = time.time()
         self.steps = 0
+        self.frames = 0
 
         return self._get_obs(api_data), {}
 
@@ -122,17 +127,25 @@ class TrackmaniaInterface(RealTimeGymInterface):
     #     pass
 
     def get_obs_rew_terminated_info(self):
+        start = time.time()
         response = self.client.recv(1024)
         api_data = TrackmaniaAPIData(response)
+
+        rew = calculate_reward(api_data)
+        ret = self._get_obs(api_data), rew, api_data.cp == 4294967295 or rew < -100, {}
 
         self.steps += 1
         if self.steps % 25 == 0:
             print(f'Steps per second: {self.steps/(time.time()-self.start):2f}')
+            print(f'Frames per second: {self.frames/(time.time()-self.start):2f}')
             print(f'Reward: {calculate_reward(api_data)}, {api_data.cp}, {api_data.distance_to_cp}')
+            print(f'Step time: {time.time()-start}')
+            print()
             self.start = time.time()
             self.steps = 0
+            self.frames = 0
 
-        return self._get_obs(api_data), calculate_reward(api_data), api_data.cp == 4294967295, {}
+        return ret
 
     def get_observation_space(self):
         lidar = spaces.Box(low=0.0, high=1.0, shape=(self.num_rays,))
@@ -142,7 +155,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
         return spaces.Tuple((lidar, speed, gear, rpm))
 
     def get_action_space(self):
-        return spaces.Box(low=0.0, high=1.0, shape=(3,))
+        return spaces.Box(low=np.array([0.0, 0.0, -1.0], dtype='float32'), high=1.0, shape=(3,))
 
     def get_default_action(self):
         return np.array([0.0, 0.0, 0.0], dtype='float32')

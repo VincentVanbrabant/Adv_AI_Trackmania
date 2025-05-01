@@ -24,8 +24,8 @@ def draw_lidar(frame, width, height, num_rays=20):
             if x >= width or y >= height or x < 0 or y < 0:
                 break
 
-            if i < 175 * scaling_factor:
-                continue
+            # if i < 175 * scaling_factor:
+            #     continue
 
             if frame_original[y,x][0] < 85 or frame_original[y,x][1] < 85 or frame_original[y,x][2] < 70:
                 break
@@ -49,8 +49,8 @@ def calculate_lidar(frame, width, height, num_rays):
             if x >= width or y >= height or x < 0 or y < 0:
                 break
 
-            if i < 175 * scaling_factor:
-                continue
+            # if i < 175 * scaling_factor:
+            #     continue
 
             if frame[y,x][0] < 85 or frame[y,x][1] < 85 or frame[y,x][2] < 70:
                 break
@@ -63,8 +63,8 @@ def main():
     last_frame: dict[str, Frame] = {}
     
     capture = WindowsCapture(
-        cursor_capture=None,
-        draw_border=None,
+        cursor_capture=False,
+        draw_border=True,
         monitor_index=None,
         window_name='Trackmania',
     )
