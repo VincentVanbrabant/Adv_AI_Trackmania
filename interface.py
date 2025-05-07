@@ -13,7 +13,7 @@ from trackmania_api import TrackmaniaAPIData
 
 def calculate_reward(api_data: TrackmaniaAPIData):
     # TODO
-    return api_data.cp * 300 - api_data.distance_to_cp
+    return (api_data.cp * 300 - api_data.distance_to_cp + 90) / 100
 
 def calculate_car_position(width, height, scaling_factor):
     return math.floor(width // 2), math.floor((height // 2) + 200 * scaling_factor)
@@ -118,22 +118,19 @@ class TrackmaniaInterface(RealTimeGymInterface):
 
         return self._get_obs(api_data), {}
 
-    # def wait(self):
-    #     pass
-
     def get_obs_rew_terminated_info(self):
         start = time.time()
         response = self.client.recv(1024)
         api_data = TrackmaniaAPIData(response)
 
         rew = calculate_reward(api_data)
-        ret = self._get_obs(api_data), rew, api_data.cp == 4294967295 or rew < -100, {}
+        ret = self._get_obs(api_data), rew, api_data.cp == 4294967295 or rew < -0.15, {}
 
         self.steps += 1
         if self.steps % 25 == 0:
             print(f'Steps per second: {self.steps/(time.time()-self.start):2f}')
             print(f'Frames per second: {self.frames/(time.time()-self.start):2f}')
-            print(f'Reward: {calculate_reward(api_data)}, {api_data.cp}, {api_data.distance_to_cp}')
+            print(f'Reward: {calculate_reward(api_data)}, ({api_data.cp}, {api_data.distance_to_cp})')
             print(f'Step time: {time.time()-start}')
             print()
             self.start = time.time()
@@ -154,6 +151,3 @@ class TrackmaniaInterface(RealTimeGymInterface):
 
     def get_default_action(self):
         return np.array([0.0, 0.0, 0.0], dtype='float32')
-
-    # def render(self):
-    #     pass

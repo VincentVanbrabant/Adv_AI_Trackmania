@@ -6,25 +6,26 @@ from datetime import datetime
 
 steps_per_second = 25
 episode_duration = 30
-training_duration = 600 * steps_per_second
 
 env = gym.make('real-time-gym-v1', config = TrackmaniaConfiguration.config(steps_per_second, episode_duration), disable_env_checker=True)
 env = FlattenObservation(env)
 
-model = SAC.load("sac_trackmania")
+model = SAC.load('sac_trackmania', env)
 
-def train():
-    for i in range(6):
-        model.learn(total_timesteps=training_duration, log_interval=None)
-        model.save(f"{datetime.now().strftime('%Y-%m-%d_%H.%M.%S')}-sac _trackmania")
-
+def train(time_between_saves):
+    while True:
+        try:
+            model.learn(total_timesteps=time_between_saves * steps_per_second, log_interval=None)
+            model.save(f'{datetime.now().strftime('%Y-%m-%d_%H.%M.%S')}-sac_trackmania')
+        except KeyboardInterrupt:
+            break
 
 def run():
     obs, _info = env.reset()
     while True:
         action, _states = model.predict(obs)
-        obs, rewards, terminated, truncated, info = env.step(action)
+        obs, rewards, terminated, truncated, _info = env.step(action)
         if terminated or truncated:
             obs, _info = env.reset()
 
-train()
+train(600)
