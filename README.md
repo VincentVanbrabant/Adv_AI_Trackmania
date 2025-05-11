@@ -31,7 +31,13 @@ Follow these steps to set up the project and run the AI:
    - During installation, **change the destination folder** to the folder where Trackmania is installed.
    - Complete the installation process.
 
-4. **Install the TMDataAPIPlugin**:
+4. **Install the PlayerState Plugin**:
+   - Start Trackmania.
+   - If you don’t see the OpenPlanet bar in the top-left corner, press `F3`.
+   - Go to **Plugin Manager** > **Open Manager** > **Search**.
+   - Search for `PlayerState` and install the **PlayerState Info** plugin.
+
+5. **Install the TMDataAPIPlugin**:
 
    - Copy the `TMDataAPIPlugin` folder from this repository to:
      ```
@@ -39,21 +45,21 @@ Follow these steps to set up the project and run the AI:
      ```
      Replace `<your-username>` with your Windows username.
 
-5. **Install the PlayerState Plugin**:
-   - Start Trackmania.
-   - If you don’t see the OpenPlanet bar in the top-left corner, press `F3`.
-   - Go to **Plugin Manager** > **Open Manager** > **Search**.
-   - Search for `PlayerState` and install the **PlayerState Info** plugin.
-
----
-
-### **2. Configure Trackmania**
-
-1. **Assign a Key to Camera 3**:
+6. **Assign a Key to Camera 3**:
 
    - Open Trackmania.
    - Go to **Settings** > **Controls**.
-   - Assign a key to **Camera 3** (e.g., `C`).
+   - Assign a key to **Camera 3** (e.g., `E`).
+
+7. **Restart the game to load the TMDataAPIPlugin**
+
+### **2. Run the AI**
+
+1. **Start Trackmania**:
+
+   - Launch Trackmania.
+   - When the game shows a logo, click the left mouse button a few times until you see a screen that says **Connecting...**.
+   - Wait for the game to load.
 
 2. **Enable Developer Mode in OpenPlanet**:
 
@@ -66,21 +72,12 @@ Follow these steps to set up the project and run the AI:
 
    - If the game is in fullscreen mode, press `Alt + Enter` to switch to windowed mode.
 
-4. **Set the Camera to First-Person View**:
-   - Open a map (e.g., [AI-test.Map.Gbx](http://_vscodecontentref_/1)) by double-clicking on it.
+4. **Load the map and set the Camera to First-Person View**:
+   - Open the `maps/AI-test.Map.Gbx` map by double-clicking on it in File Explorer.
+   - Switch back to the game window.
    - Press the key assigned to **Camera 3** (step 1) until the camera is in first-person perspective and does not show the car.
 
----
-
-### **3. Run the AI**
-
-1. **Start Trackmania**:
-
-   - Launch Trackmania.
-   - When the game shows a logo, click the left mouse button a few times until you see a screen that says **Connecting...**.
-   - Wait for the game to load.
-
-2. **Run the AI**:
+5. **Run the AI**:
    - Open a terminal in the project directory.
    - Run the following command:
      ```bash

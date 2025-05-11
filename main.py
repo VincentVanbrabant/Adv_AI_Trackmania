@@ -28,4 +28,4 @@ def run():
         if terminated or truncated:
             obs, _info = env.reset()
 
-train(600)
+run()
