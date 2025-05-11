@@ -7,37 +7,10 @@ import numpy as np
 import socket
 import cv2
 import time
-import math
 
+from lidar import calculate_lidar
+from reward import calculate_reward
 from trackmania_api import TrackmaniaAPIData
-
-def calculate_reward(api_data: TrackmaniaAPIData):
-    # TODO
-    return (api_data.cp * 300 - api_data.distance_to_cp + 90) / 100
-
-def calculate_car_position(width, height, scaling_factor):
-    return math.floor(width // 2), math.floor((height // 2) + 200 * scaling_factor)
-
-def calculate_lidar(frame, width, height, num_rays):
-    scaling_factor = (height / 1080)
-    cx, cy = calculate_car_position(width, height, scaling_factor)
-    distances = []
-    # max length of a ray assuming it starts at the bottom center and ends up in either top corner
-    max_ray_length = math.ceil(math.sqrt((width / 2)**2 + height**2))
-
-    for angle in np.linspace(np.pi, 2 * np.pi, num_rays):
-        dx, dy = np.cos(angle), np.sin(angle)
-        for i in range(1, max_ray_length, 1):
-            x, y = int(cx + dx * i), int(cy + dy * i)
-            if x >= width or y >= height or x < 0 or y < 0:
-                break
-
-            pixel = frame[y,x]
-            if pixel[0] < 85 or pixel[1] < 85 or pixel[2] < 70:
-                break
-
-        distances.append(i / max_ray_length)
-    return distances
 
 class TrackmaniaInterface(RealTimeGymInterface):
     def __init__(self, num_rays=20):
@@ -130,7 +103,7 @@ class TrackmaniaInterface(RealTimeGymInterface):
         if self.steps % 25 == 0:
             print(f'Steps per second: {self.steps/(time.time()-self.start):2f}')
             print(f'Frames per second: {self.frames/(time.time()-self.start):2f}')
-            print(f'Reward: {calculate_reward(api_data)}, ({api_data.cp}, {api_data.distance_to_cp})')
+            print(f'Reward: {rew}, ({api_data.cp}, {api_data.distance_to_cp})')
             print(f'Step time: {time.time()-start}')
             print()
             self.start = time.time()

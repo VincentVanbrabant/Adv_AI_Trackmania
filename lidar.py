@@ -24,7 +24,8 @@ def draw_lidar(frame, width, height, num_rays=20):
             if x >= width or y >= height or x < 0 or y < 0:
                 break
 
-            if frame_original[y,x][0] < 85 or frame_original[y,x][1] < 85 or frame_original[y,x][2] < 70:
+            pixel = frame_original[y,x]
+            if pixel[0] < 85 or pixel[1] < 85 or pixel[2] < 70:
                 break
 
             cv2.circle(frame, (x, y), 1, (0, 0, 255), -1)  # Draw LIDAR point in RED
@@ -32,10 +33,9 @@ def draw_lidar(frame, width, height, num_rays=20):
     return frame, distances
 
 def calculate_lidar(frame, width, height, num_rays):
-    """Calculate lidar without displaying anything for a significant performance improvement"""
     scaling_factor = (height / 1080)
     cx, cy = calculate_car_position(width, height, scaling_factor)
-    distances = []  # Store distance for each ray
+    distances = []
     # max length of a ray assuming it starts at the bottom center and ends up in either top corner
     max_ray_length = math.ceil(math.sqrt((width / 2)**2 + height**2))
 
@@ -46,7 +46,8 @@ def calculate_lidar(frame, width, height, num_rays):
             if x >= width or y >= height or x < 0 or y < 0:
                 break
 
-            if frame[y,x][0] < 85 or frame[y,x][1] < 85 or frame[y,x][2] < 70:
+            pixel = frame[y,x]
+            if pixel[0] < 85 or pixel[1] < 85 or pixel[2] < 70:
                 break
 
         distances.append(i / max_ray_length)
